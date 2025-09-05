@@ -1,0 +1,22 @@
+# ------------------------------
+# Backend: Express + Firebase (dev)
+# ------------------------------
+FROM node:20-alpine
+
+# Recommended system deps (optional, but helpful for native modules)
+RUN apk add --no-cache bash
+
+WORKDIR /usr/src/app
+
+# Install dependencies first for better caching
+COPY package*.json ./
+RUN npm ci
+
+# Copy sources
+COPY . .
+
+ENV NODE_ENV=development
+EXPOSE 3000
+
+# Use nodemon dev script defined in package.json
+CMD ["npm", "run", "dev"]
