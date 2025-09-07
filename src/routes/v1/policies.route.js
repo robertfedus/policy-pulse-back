@@ -1,15 +1,15 @@
 import { Router } from 'express';
-import * as usersController from '../../controllers/users.controller.js';
+import * as PoliciesController from '../../controllers/policies.controller.js';
 import { requireAuth } from '../../middleware/auth.js';
 
 const router = Router();
 
 // Public placeholder route
-router.get('/', usersController.listUsers);
-router.post('/', usersController.createUser);
+router.get('/', PoliciesController.listPolicies);
+router.post('/', PoliciesController.createPolicies);
 // Example protected routes (uncomment when ready)
 
-//router.get('/:id', requireAuth, usersController.getUserById);
+// router.get('/:id', requireAuth, usersController.getUserById);
 // router.patch('/:id', requireAuth, usersController.updateUser);
 // router.delete('/:id', requireAuth, usersController.deleteUser);
 
