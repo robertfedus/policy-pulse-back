@@ -5,7 +5,7 @@ export const UserCreateSchema = z.object({
   name: z.string().min(1),
   role: z.enum(['patient', 'hospital']).default('patient'),
   password: z.string().min(6),
-  insuredAt: z.string().min(1).nullish(),
+  insuredAt: z.array(z.string()).default([]), // array of policy IDs
   ilnesses: z
     .array(
       z.object({
