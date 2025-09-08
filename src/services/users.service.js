@@ -2,7 +2,7 @@
 import { firestore } from '../config/firebase.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { UserCreateSchema, UserUpdateSchema } from '../models/user.model.js';
+import { UserCreateSchema } from '../models/user.model.js';
 
 const COLLECTION = 'users';
 const jwtSecret = process.env.JWT_SECRET;
