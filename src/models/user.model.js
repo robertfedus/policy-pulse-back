@@ -12,7 +12,7 @@ const PatientSchema = z.object({
   ...base,
   role: z.literal('patient'),
   insuredAt: z.array(z.string()).default([]),
-  ilnesses: z.array(
+  illnesses: z.array(
     z.object({
       name: z.string().min(1),
       medications: z.array(z.string().min(1)).default([]),

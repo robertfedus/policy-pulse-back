@@ -111,6 +111,7 @@ export async function findPatientsByHospital(hospitalId) {
   if (!hospSnap.exists) return [];
 
   const hosp = hospSnap.data();
+  if (hosp.role !== "hospital") return [];
 
   const list = Array.isArray(hosp.patients) ? hosp.patients : [];
   if (!list.length) return [];
@@ -125,6 +126,7 @@ export async function findPatientsByHospital(hospitalId) {
     .map(s => ({ id: s.id, ...s.data() }))
     .filter(u => u.role === "patient");
 }
+
 
 export async function getUserById(id) {
   const doc = await firestore.collection(COLLECTION).doc(id).get();
