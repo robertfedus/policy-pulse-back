@@ -6,6 +6,8 @@ const router = Router();
 
 // Public placeholder route
 router.get('/', usersController.listUsers);
+router.get('/patients', usersController.getAllPatients);
+router.get('/:id', usersController.getUserById);
 router.post('/', usersController.createUser);
 // Example protected routes (uncomment when ready)
 

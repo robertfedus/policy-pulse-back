@@ -26,3 +26,8 @@ export const deleteUser = asyncHandler(async (req, res) => {
   await usersService.deleteUser(req.params.id);
   res.status(204).send();
 });
+
+export const getAllPatients = asyncHandler(async (req, res) => {
+  const patients = await usersService.getAllPatients();
+  res.json({ data: patients });
+});

@@ -25,6 +25,16 @@ export async function getPolicies(id) {
   return { id: doc.id, ...doc.data() };
 }
 
+export async function getPoliciesByInsuranceCompany(insuranceCompanyId) {
+  const snapshot = await firestore
+    .collection(COLLECTION)
+    .where("insuranceCompanyRef", "==", firestore.collection("insurance_companies").doc(insuranceCompanyId))
+    .get(); 
+
+  if (snapshot.empty) return [];
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 export async function updatePolicies(id, payload) {
   await firestore.collection(COLLECTION).doc(id).set(
     { ...payload, updatedAt: new Date() },
