@@ -19,6 +19,26 @@ export async function createUser(payload) {
   return { id: ref.id, ...doc.data() };
 }
 
+export async function findPatientsByHospital(hospitalId) {
+  const hospSnap = await firestore.collection(COLLECTION).doc(hospitalId).get();
+  if (!hospSnap.exists) return [];
+
+  const hosp = hospSnap.data();
+
+  const list = Array.isArray(hosp.patients) ? hosp.patients : [];
+  if (!list.length) return [];
+
+  const ids = list.map(x => (typeof x === "string" && x.startsWith("users/") ? x.split("/")[1] : x));
+
+  const refs = ids.map(id => firestore.collection(COLLECTION).doc(id));
+  const snaps = await firestore.getAll(...refs);
+
+  return snaps
+    .filter(s => s.exists)
+    .map(s => ({ id: s.id, ...s.data() }))
+    .filter(u => u.role === "patient");
+}
+
 export async function getUserById(id) {
   const doc = await firestore.collection(COLLECTION).doc(id).get();
   if (!doc.exists) return null;

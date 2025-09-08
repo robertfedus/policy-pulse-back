@@ -17,6 +17,11 @@ export const getUserById = asyncHandler(async (req, res) => {
   res.json({ data: user });
 });
 
+export const findPatientsByHospital = asyncHandler(async (req, res) => {
+  const patients = await usersService.findPatientsByHospital(req.params.id);
+  res.json({ data: patients });
+});
+
 export const updateUser = asyncHandler(async (req, res) => {
   const updated = await usersService.updateUser(req.params.id, req.body);
   res.json({ data: updated });
