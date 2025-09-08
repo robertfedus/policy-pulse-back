@@ -18,6 +18,7 @@ export async function createUser(payload) {
   const doc = await ref.get();
   return { id: ref.id, ...doc.data() };
 }
+
 export async function findPatientsByHospital(hospitalId) {
   const hospSnap = await firestore.collection(COLLECTION).doc(hospitalId).get();
   if (!hospSnap.exists) return [];
