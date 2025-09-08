@@ -5,9 +5,11 @@ import * as usersController from './../../controllers/users.controller.js';
 const router = Router();
 
 // Public placeholder route
+
 // router.get('/', usersController.listUsers);
 router.post('/register', usersController.register);
 router.post('/login', usersController.login);
+
 // Example protected routes (uncomment when ready)
 
 //router.get('/:id', requireAuth, usersController.getUserById);

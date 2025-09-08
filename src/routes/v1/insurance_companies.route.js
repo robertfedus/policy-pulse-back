@@ -7,6 +7,7 @@ const router = Router();
 // Public placeholder route
 router.get('/', InsuranceCompaniesController.listInsuranceCompanies);
 router.post('/', InsuranceCompaniesController.createInsuranceCompanies);
+router.get('/:id', InsuranceCompaniesController.getInsuranceCompanyById);
 // Example protected routes (uncomment when ready)
 
 // router.get('/:id', requireAuth, usersController.getUserById);

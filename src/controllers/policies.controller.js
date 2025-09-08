@@ -12,3 +12,23 @@ export const listPolicies= asyncHandler(async (req, res) => {
   const policies = await policiesService.listPolicies();
   res.json({ data: policies });
 });
+
+export const getPoliciesById = asyncHandler(async (req, res) => {
+  const policy = await policiesService.getPolicies(req.params.id);
+  res.json({ data: policy });
+});
+
+export const updatePolicies = asyncHandler(async (req, res) => {
+  const updated = await policiesService.updatePolicies(req.params.id, req.body);
+  res.json({ data: updated });
+});
+
+export const deletePolicies = asyncHandler(async (req, res) => {
+  await policiesService.deletePolicies(req.params.id);
+  res.status(204).send();
+} );
+
+export const getPoliciesByInsuranceCompany = asyncHandler(async (req, res) => {   
+  const policies = await policiesService.getPoliciesByInsuranceCompany(req.params.insuranceCompanyId);
+  res.json({ data: policies });
+});
