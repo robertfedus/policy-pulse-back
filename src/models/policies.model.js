@@ -9,6 +9,10 @@ export const PoliciesCreateSchema = z.object({
   insuranceCompanyRef: docRefTo("insurance_companies"),
   beFileName: z.string().min(1, "beFileName is required"),
   effectiveDate: isoDate.nullish(), 
+  version: z.number().min(1).default(1),
+  coverage_map: z.record(z.string(), z.object({ type: z.enum(["covered","percent","not_covered"]),
+  percent: z.number().min(0).max(100).optional() }))
+ 
 });
 
 export const PoliciesUpdateSchema = PoliciesCreateSchema.partial();

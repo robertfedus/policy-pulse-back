@@ -37,3 +37,13 @@ export async function updateUser(id, payload) {
 export async function deleteUser(id) {
   await firestore.collection(COLLECTION).doc(id).delete();
 }
+
+export async function getAllPatients() {
+  const snapshot = await firestore
+    .collection(COLLECTION)
+    .where("role", "==", "patient")
+    .get();
+
+  if (snapshot.empty) return [];
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
