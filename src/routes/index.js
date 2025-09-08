@@ -9,7 +9,7 @@ import aiRoute from './v1/ai.route.js';
 const router = Router();
 
 router.use('/health', healthRoute);
-router.use('/v1/users', usersRouteV1);
+router.use('/v1/auth', usersRouteV1);
 router.use('/v1/insurance_companies', insuranceCompaniesRoute);
 router.use('/v1/policies', policiesRoute);
 
