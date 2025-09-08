@@ -23,7 +23,6 @@ export const findPatientsByHospital = asyncHandler(async (req, res) => {
 });
 
 
-
 export const updateUser = asyncHandler(async (req, res) => {
   const updated = await usersService.updateUser(req.params.id, req.body);
   res.json({ data: updated });
