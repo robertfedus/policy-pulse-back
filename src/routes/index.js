@@ -15,5 +15,4 @@ router.use('/v1/policies', policiesRoute);
 
 router.use('/v1/ai', aiRoute);
 
-
 export default router;
