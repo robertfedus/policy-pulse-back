@@ -8,6 +8,7 @@ import routes from './routes/index.js';
 import notFound from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
+
 const app = express();
 
 // Basic hardening & common middleware
