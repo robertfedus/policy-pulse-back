@@ -1,16 +1,18 @@
 import { Router } from 'express';
 import * as PoliciesController from '../../controllers/policies.controller.js';
-import { requireAuth } from '../../middleware/auth.js';
 
 const router = Router();
 
-// Public placeholder route
+// CRUD
 router.get('/', PoliciesController.listPolicies);
 router.post('/', PoliciesController.createPolicies);
-// Example protected routes (uncomment when ready)
 
-// router.get('/:id', requireAuth, usersController.getUserById);
-// router.patch('/:id', requireAuth, usersController.updateUser);
-// router.delete('/:id', requireAuth, usersController.deleteUser);
+// Compare
+router.post('/:id/compare', PoliciesController.comparePolicyById);
+router.post('/compare', PoliciesController.comparePolicyByQuery);
+router.post('/compare-files', PoliciesController.compareLocalFiles);
+
+// NEW: ingest a single local file into Firestore
+router.post('/ingest-file', PoliciesController.ingestPolicyFromFile);
 
 export default router;
