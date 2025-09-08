@@ -37,7 +37,7 @@ export const getAllPatients = asyncHandler(async (req, res) => {
   const patients = await usersService.getAllPatients();
   res.json({ data: patients });
 });
-=======
+
 /**
  * Extract auth info from the "Authorization: Bearer <jwt>" header.
  * - Returns { userId, role } if the token is valid
