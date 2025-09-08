@@ -9,7 +9,7 @@ import policiesHistoryRoute from './v1/policy_history.route.js';
 const router = Router();
 
 router.use('/health', healthRoute);
-router.use('/v1/users', usersRouteV1);
+router.use('/v1/auth', usersRouteV1);
 router.use('/v1/insurance_companies', insuranceCompaniesRoute);
 router.use('/v1/policies', policiesRoute);
 router.use('/v1/ai', aiRoute);

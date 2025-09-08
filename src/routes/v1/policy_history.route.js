@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as PolicyHistoriesController from '../../controllers/policy_histories.controller.js';
-import { requireAuth } from '../../middleware/auth.js';
+// import { requireAuth } from '../../middleware/auth.js';
 
 const router = Router();
 

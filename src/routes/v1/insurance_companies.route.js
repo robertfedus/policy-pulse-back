@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as InsuranceCompaniesController from '../../controllers/insurance_companies.controller.js';
-import { requireAuth } from '../../middleware/auth.js';
+// import { requireAuth } from '../../middleware/auth.js';
 
 const router = Router();
 
