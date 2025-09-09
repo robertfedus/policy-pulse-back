@@ -11,6 +11,7 @@ router.get('/insurance-company/:insuranceCompanyId', PoliciesController.getPolic
 router.post('/', PoliciesController.createPolicies);
 router.get("/:id/pdf", PoliciesController.streamPolicyPdf);       
 router.get("/:id/pdf-url", PoliciesController.policyPdfSignedUrl); 
+router.get("/insuranceRef/:insuranceCompanyRef", PoliciesController.findPolicyByInsuranceCompany);
 
 // Compare
 router.post('/:id/compare', PoliciesController.comparePolicyById);
