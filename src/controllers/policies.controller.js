@@ -288,13 +288,16 @@ export const uploadPolicy = asyncHandler(async (req, res) => {
     req.body.beFileName = result.path;
     const created = await policiesService.createPolicies(req.body);
     const summary = await aiService.getPolicySummary(created.id);
+    const coverageMap = await aiService.getPolicyCoverageMap(created.id);
     await policiesService.updatePolicySummary(created.id, summary);
+    await policiesService.updatePolicyCoverageMap(created.id, coverageMap);
     
 
     res.status(201).json({
       fileUploadResult: result,
       databaseResult: created,
-      summary
+      summary,
+      coverage_map: JSON.parse(coverageMap)
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
