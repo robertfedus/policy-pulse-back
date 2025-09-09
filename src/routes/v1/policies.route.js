@@ -20,5 +20,6 @@ router.post('/compare-files', PoliciesController.compareLocalFiles);
 // NEW: ingest a single local file into Firestore
 router.post('/ingest-file', PoliciesController.ingestPolicyFromFile);
 
+router.post('/ingest-policy', PoliciesController.ingestPolicyFromBucket);
 
 export default router;

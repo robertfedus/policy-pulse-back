@@ -2,10 +2,11 @@
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import asyncHandler from '../utils/asyncHandler.js';
-import { firestore } from '../config/firebase.js';
+import admin,{ firestore } from '../config/firebase.js';
 import * as policiesService from '../services/policies.service.js';
 import * as aiService from '../services/ai.service.js';
 
+const BUCKET=process.env.FIREBASE_STORAGE_BUCKET 
 // Your PDFs live at policy-pulse-back/src/uploads on host,
 // which is /usr/src/app/src/uploads inside the container.
 const UPLOAD_DIR = process.env.UPLOAD_DIR || '/usr/src/app/src/uploads';
@@ -142,8 +143,6 @@ export const comparePolicyById = asyncHandler(async (req, res) => {
   res.status(201).json({
     data: {
       summary,
-      oldHtml,
-      newHtml,
       base: { id: base.id, version: base.version, beFileName: base.beFileName },
       against: { id: against.id, version: against.version, beFileName: against.beFileName },
     },
@@ -193,8 +192,6 @@ export const comparePolicyByQuery = asyncHandler(async (req, res) => {
   res.status(201).json({
     data: {
       summary,
-      oldHtml,
-      newHtml,
       base: { id: base.id, version: base.version, beFileName: base.beFileName },
       against: { id: against.id, version: against.version, beFileName: against.beFileName },
     },
@@ -312,4 +309,80 @@ export const policyPdfSignedUrl = asyncHandler(async (req, res) => {
   const result = await policiesService.getPolicySignedUrl(req.params.id);
   if (!result.ok) return res.status(404).json(result);
   res.json(result); // { url, objectName, ttlMinutes }
+});
+
+
+// ---- UNUSED: ingest from bucket (not local) ----
+export const ingestPolicyFromBucket = asyncHandler(async (req, res) => {
+  const { objectName: rawObject, beFileName: rawFile, insuranceCompanyRef, version, effectiveDate } = req.body || {};
+
+  if (!insuranceCompanyRef) {
+    return res.status(400).json({ error: "insuranceCompanyRef is required" });
+  }
+  if (!rawObject && !rawFile) {
+    return res.status(400).json({ error: "Provide either objectName or beFileName" });
+  }
+
+  // 1) Resolve bucket object name
+  let objectName = (rawObject || "").toString().trim();
+  if (!objectName) {
+    const base = path.basename((rawFile || "").toString().trim());
+    objectName = `${base}`; // your bucket layout
+  }
+  objectName = objectName.replace(/^\/+/, ""); // strip accidental leading "/"
+  const beFileName = path.basename(objectName);
+
+  // 2) Get file from Storage
+  const bucket = BUCKET ? admin.storage().bucket(BUCKET) : admin.storage().bucket();
+  const file = bucket.file(objectName);
+
+  const [exists] = await file.exists();
+  if (!exists) {
+    return res.status(404).json({ error: "missing_in_bucket", objectName });
+  }
+
+  const [pdfBuffer] = await file.download();
+
+  // 3) Extract text with AI service (IMPORTANT: pass filename + buffer)
+  const text = await aiService.extractTextFromBuffer(beFileName, pdfBuffer);
+
+  // 4) Ask AI to lift fields (no "name" in hints—derive from LLM or filename)
+  const extracted = await aiService.extractPolicyFields({
+    filename: beFileName,
+    text,
+    hints: { version, effectiveDate, beFileName, insuranceCompanyRef }
+  });
+
+  // 5) Build policy doc
+  const doc = {
+    name: extracted.name || beFileName,
+    summary: extracted.summary || "",
+    beFileName,
+    effectiveDate: extracted.effectiveDate || effectiveDate || null,
+    version: Number(extracted.version) || Number(version) || 1,
+    coverage_map: extracted.coverage_map || {},
+    insuranceCompanyRef,
+  };
+
+  // 6) Upsert by (name + company + version)
+  const existing = await policiesService.findByNameCompanyVersion({
+    name: doc.name,
+    insuranceCompanyRef: doc.insuranceCompanyRef,
+    version: doc.version
+  });
+
+  let out, operation;
+  if (existing) {
+    out = await policiesService.updatePolicy(existing.id, doc);
+    operation = "updated";
+  } else {
+    out = await policiesService.createPolicies(doc);
+    operation = "created";
+  }
+
+  res.status(201).json({
+    operation,
+    data: out,
+    source: { objectName }
+  });
 });

@@ -230,7 +230,7 @@ export async function extractPolicyFields({ filename, text, hints = {} }) {
   const sys =
     'You are an assistant that extracts structured data from insurance policy PDFs. ' +
     'Return a SINGLE JSON object only. Keys: ' +
-    'name (string), summary (string), effectiveDate (YYYY-MM-DD string or null), ' +
+    'name (string), summary ( a short summary of type string), effectiveDate (YYYY-MM-DD string or null), ' +
     'version (number), coverage_map (object of { item: { type: "covered"|"not_covered"|"percent", percent?: number, copay?: number } }). ' +
     'Keep it concise. Do NOT include extra commentary.';
 
@@ -246,7 +246,7 @@ RETURN: Strict JSON with keys: name, summary, effectiveDate, version, coverage_m
   const res = await client.chat.completions.create({
     model: 'gpt-4o-mini',
     temperature: 0,
-    messages: [{ role: 'system', content: sys }, { role: 'user', content: user }],
+    messages: [ { role: 'user', content: sys }],
     response_format: { type: 'json_object' }
   });
 
