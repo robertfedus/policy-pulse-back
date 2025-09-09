@@ -155,7 +155,7 @@ export const ingestPolicyFromFile = asyncHandler(async (req, res) => {
 });
 
 export const getPoliciesById = asyncHandler(async (req, res) => {
-  const policy = await policiesService.listPolicies(req.params.id);
+  const policy = await policiesService.getPolicyById(req.params.id);
   res.json({ data: policy });
 });
 
