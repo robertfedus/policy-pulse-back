@@ -5,9 +5,23 @@ const COLLECTION = 'policies';
 export async function listPolicies(limit = 50) {
   const snap = await firestore.collection(COLLECTION)
     .orderBy('createdAt', 'desc')
-    .limit(limit)
     .get();
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+export async function uploadPolicyFileBuffer(buffer, destName) {
+  if (!destName) throw new Error("destName is required");
+  destName = destName.replace(/^\/+/, ""); // strip leading "/"
+
+  const bucket = BUCKET ? admin.storage().bucket(BUCKET) : admin.storage().bucket();
+  const file = bucket.file(destName);
+
+  await file.save(buffer, {
+    contentType: "application/pdf", // or detect from req.file.mimetype
+    resumable: false,
+  });
+
+  return destName;
 }
 
 export async function createPolicies(payload) {
