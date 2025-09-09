@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as PoliciesController from '../../controllers/policies.controller.js';
-import multer from "multer";
+import multer from 'multer';
 
 import asyncHandler from "../../utils/asyncHandler.js";
 
@@ -15,10 +15,8 @@ router.get("/:id/pdf", PoliciesController.streamPolicyPdf);
 router.get("/:id/pdf-url", PoliciesController.policyPdfSignedUrl); 
 router.get("/insuranceRef/:insuranceCompanyRef", PoliciesController.findPolicyByInsuranceCompany);
 
-// Compare
-router.post('/:id/compare', PoliciesController.comparePolicyById);
-router.post('/compare', PoliciesController.comparePolicyByQuery);
-router.post('/compare-files', PoliciesController.compareLocalFiles);
+// Summary
+router.get('/summary/:id', PoliciesController.getPolicySummary);
 
 
 router.post("/upload", upload.single("file"),PoliciesController.uploadPolicy)
@@ -27,5 +25,8 @@ router.post("/upload", upload.single("file"),PoliciesController.uploadPolicy)
 router.post('/ingest-file', PoliciesController.ingestPolicyFromFile);
 
 router.post('/ingest-policy', PoliciesController.ingestPolicyFromBucket);
+
+const upload = multer({ storage: multer.memoryStorage() });
+router.post('/upload', upload.single('file'), PoliciesController.uploadPolicy);
 
 export default router;

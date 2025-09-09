@@ -1,4 +1,4 @@
-import admin,{ firestore } from '../config/firebase.js';
+import admin,{ firestore, storage } from '../config/firebase.js';
 
 const COLLECTION = 'policies';
 
@@ -210,6 +210,79 @@ export async function getPolicySignedUrl(id, { expiresMinutes = 10 } = {}) {
 
   return { ok: true, url, objectName: resolved.objectName, ttlMinutes: expiresMinutes };
 }
+
+// Service
+export const uploadPolicyToBucket = async (file, ownerId = 'anonymous') => {
+
+  if (!file) {
+    throw new Error('No file provided');
+  }
+
+  // Validate PDF
+  const isPdf =
+    file.mimetype === 'application/pdf' ||
+    (file.originalname && file.originalname.toLowerCase().endsWith('.pdf'));
+  if (!isPdf) {
+    throw new Error('Only PDF files are allowed');
+  }
+
+  const bucket = storage.bucket(process.env.FIREBASE_STORAGE_BUCKET);
+
+  const base = file.originalname;
+  const path = base;
+  const blob = bucket.file(path);
+
+  await blob.save(file.buffer, {
+    resumable: false,
+    contentType: 'application/pdf',
+    metadata: {
+      contentType: 'application/pdf',
+      cacheControl: 'public, max-age=3600',
+    },
+  });
+
+  // Option A: make public
+  await blob.makePublic();
+  const url = `https://storage.googleapis.com/${bucket.name}/${encodeURI(path)}`;
+
+  // Option B: signed URL (instead of makePublic)
+  // const [signedUrl] = await blob.getSignedUrl({
+  //   action: 'read',
+  //   expires: '2030-01-01',
+  // });
+  // const url = signedUrl;
+
+  return {
+    path,
+    url,
+    name: base,
+    size: file.size,
+    ownerId,
+    uploadedAt: new Date().toISOString(),
+  };
+};
+
+export async function updatePolicySummary(id, summary) {
+  if (!id) {
+    throw new Error('Policy id is required');
+  }
+
+  // reference the document by id
+  const ref = firestore.collection(COLLECTION).doc(id);
+
+  // update only the "summary" field
+  await ref.update({
+    summary,
+    updatedAt: new Date(), // optional, good to keep track
+  });
+
+  // fetch the updated doc if you want to return the new state
+  const doc = await ref.get();
+  if (!doc.exists) {
+    throw new Error(`Policy with id ${id} not found`);
+  }
+
+  return { id: doc.id, ...doc.data() };
 
 export async function getTwoPoliciesById(oldPolicyId, newPolicyId) {
   const [oldP, newP] = await Promise.all([getPolicy(oldPolicyId), getPolicy(newPolicyId)]);
