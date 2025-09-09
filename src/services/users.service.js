@@ -120,9 +120,8 @@ export async function addMedication(patientId,illness ,medication) {
     err.status = 400;
     throw err;
   }
-  console.log(patientData);
   const illnesses = Array.isArray(patientData.illnesses) ? patientData.illnesses : [];
-  console.log(illnesses);
+  
   const illnessIndex = illnesses.findIndex(i => i.name === illness)||illnesses.findIndex(i => i === illness.name);
   if (illnessIndex === -1) {
     const err = new Error('Illness not found for this patient');
