@@ -283,7 +283,7 @@ export async function updatePolicySummary(id, summary) {
   }
 
   return { id: doc.id, ...doc.data() };
-
+}
 export async function getTwoPoliciesById(oldPolicyId, newPolicyId) {
   const [oldP, newP] = await Promise.all([getPolicy(oldPolicyId), getPolicy(newPolicyId)]);
   return { oldPolicy: oldP, newPolicy: newP };
