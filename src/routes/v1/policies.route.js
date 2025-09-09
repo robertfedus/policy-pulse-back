@@ -30,7 +30,6 @@ router.post('/ingest-file', PoliciesController.ingestPolicyFromFile);
 
 router.post('/ingest-policy', PoliciesController.ingestPolicyFromBucket);
 
-const upload = multer({ storage: multer.memoryStorage() });
 router.post('/upload', upload.single('file'), PoliciesController.uploadPolicy);
 
 export default router;
