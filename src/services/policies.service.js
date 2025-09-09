@@ -18,6 +18,16 @@ export async function createPolicies(payload) {
   const doc = await ref.get();
   return { id: ref.id, ...doc.data() };
 }
+ export async function getPolicyByInsuranceCompanyRef(payload) {
+  const q = await firestore.collection(COLLECTION)
+    .where('insuranceCompanyRef', '==', "insurance_companies/"+payload)
+    .get();
+ if (q.empty) return [];
+
+  return q.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+  
+ 
 
 export async function getPolicyById(id) {
   const doc = await firestore.collection(COLLECTION).doc(id).get();
