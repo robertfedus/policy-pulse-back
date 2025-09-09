@@ -18,6 +18,7 @@ export async function createPolicies(payload) {
   const doc = await ref.get();
   return { id: ref.id, ...doc.data() };
 }
+
 export async function getPolicy(policyId) {
   const ref = firestore.collection(COLLECTION).doc(policyId);
   const snap = await ref.get();
@@ -36,6 +37,17 @@ export async function getPolicy(policyId) {
 
   return { ref, id: policyId, data };
 }
+
+ export async function getPolicyByInsuranceCompanyRef(payload) {
+  const q = await firestore.collection(COLLECTION)
+    .where('insuranceCompanyRef', '==', "insurance_companies/"+payload)
+    .get();
+ if (q.empty) return [];
+
+  return q.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+  
+ 
 
 export async function getPolicyById(id) {
   const doc = await firestore.collection(COLLECTION).doc(id).get();
