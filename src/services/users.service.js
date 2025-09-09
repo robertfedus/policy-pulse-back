@@ -3,6 +3,7 @@ import { firestore } from '../config/firebase.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { UserCreateSchema } from '../models/user.model.js';
+import { flattenUserMeds } from '../utils/meds.js';
 
 const COLLECTION = 'users';
 const jwtSecret = process.env.JWT_SECRET;
@@ -276,4 +277,34 @@ export async function getAllPatients() {
 
   if (snapshot.empty) return [];
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function getUsersInsuredOnAny(policyPaths) {
+  const seen = new Set();
+  const docs = [];
+
+  const snaps = await Promise.all(
+    policyPaths.map((path) =>
+      firestore.collection(COLLECTION).where("insuredAt", "array-contains", path).get()
+    )
+  );
+
+  snaps.forEach((snap) => {
+    snap.forEach((doc) => {
+      if (!seen.has(doc.id)) {
+        seen.add(doc.id);
+        docs.push(doc);
+      }
+    });
+  });
+
+  return docs;
+}
+
+export function extractUserMeds(doc) {
+  const data = doc.data();
+  if (Array.isArray(data.medicationsFlat) && data.medicationsFlat.length) {
+    return data.medicationsFlat.map((m) => String(m).toLowerCase());
+  }
+  return flattenUserMeds(data);
 }
