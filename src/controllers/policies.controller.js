@@ -102,124 +102,6 @@ async function findPreviousVersion({ name, insuranceCompanyRef, baseVersion }) {
   return { id: d.id, ...d.data() };
 }
 
-// ---- compare by base policy id ----
-export const comparePolicyById = asyncHandler(async (req, res) => {
-  const base = await loadPolicyDocById(req.params.id);
-  if (!base) return res.status(404).json({ error: 'Base policy not found' });
-
-  const { againstPolicyId, againstVersion, strategy = 'prev' } = req.body || {};
-  let against = null;
-
-  if (strategy === 'id' && againstPolicyId) {
-    against = await loadPolicyDocById(againstPolicyId);
-  } else if (strategy === 'version' && againstVersion != null) {
-    against = await findPolicyByNameCompVersion({
-      name: base.name,
-      insuranceCompanyRef: base.insuranceCompanyRef,
-      version: Number(againstVersion),
-    });
-  } else {
-    against = await findPreviousVersion({
-      name: base.name,
-      insuranceCompanyRef: base.insuranceCompanyRef,
-      baseVersion: base.version ?? 1,
-    });
-  }
-
-  if (!against) {
-    return res.status(404).json({ error: 'No counterpart policy found to compare against' });
-  }
-
-  const older = (against.version ?? 0) <= (base.version ?? 0) ? against : base;
-  const newer = older.id === against.id ? base : against;
-
-  if (!older.beFileName || !newer.beFileName) {
-    return res.status(400).json({ error: 'Both policies must have beFileName set' });
-  }
-
-  const label = `${base.name} (v${older.version}→v${newer.version})`;
-  const { summary, oldHtml, newHtml } = await compareUsingLocalOrBucket({ older, newer, label });
-
-  res.status(201).json({
-    data: {
-      summary,
-      base: { id: base.id, version: base.version, beFileName: base.beFileName },
-      against: { id: against.id, version: against.version, beFileName: against.beFileName },
-    },
-  });
-});
-
-// ---- compare by name+company (+versions) ----
-export const comparePolicyByQuery = asyncHandler(async (req, res) => {
-  const { name, insuranceCompanyRef, baseVersion, againstVersion } = req.body || {};
-  if (!name || !insuranceCompanyRef || !baseVersion) {
-    return res.status(400).json({ error: 'name, insuranceCompanyRef, baseVersion are required' });
-  }
-
-  const base = await findPolicyByNameCompVersion({
-    name,
-    insuranceCompanyRef,
-    version: Number(baseVersion),
-  });
-  if (!base) return res.status(404).json({ error: 'Base policy not found' });
-
-  let against = null;
-  if (againstVersion != null) {
-    against = await findPolicyByNameCompVersion({
-      name,
-      insuranceCompanyRef,
-      version: Number(againstVersion),
-    });
-  } else {
-    against = await findPreviousVersion({
-      name,
-      insuranceCompanyRef,
-      baseVersion: Number(baseVersion),
-    });
-  }
-  if (!against) return res.status(404).json({ error: 'No counterpart policy found to compare against' });
-
-  const older = (against.version ?? 0) <= (base.version ?? 0) ? against : base;
-  const newer = older.id === against.id ? base : against;
-
-  if (!older.beFileName || !newer.beFileName) {
-    return res.status(400).json({ error: 'Both policies must have beFileName set' });
-  }
-
-  const label = `${name} (v${older.version}→v${newer.version})`;
-  const { summary, oldHtml, newHtml } = await compareUsingLocalOrBucket({ older, newer, label });
-
-  res.status(201).json({
-    data: {
-      summary,
-      base: { id: base.id, version: base.version, beFileName: base.beFileName },
-      against: { id: against.id, version: against.version, beFileName: against.beFileName },
-    },
-  });
-});
-
-// ---- NEW: compare two local files directly (no Firestore) ----
-export const compareLocalFiles = asyncHandler(async (req, res) => {
-  const { oldFile, newFile, policyName } = req.body || {};
-  if (!oldFile || !newFile) {
-    return res.status(400).json({ error: 'oldFile and newFile are required' });
-  }
-
-  const oldPath = path.isAbsolute(oldFile) ? oldFile : path.join(UPLOAD_DIR, oldFile);
-  const newPath = path.isAbsolute(newFile) ? newFile : path.join(UPLOAD_DIR, newFile);
-
-  await fs.access(oldPath);
-  await fs.access(newPath);
-
-  const { summary, oldHtml, newHtml } = await aiService.comparePoliciesByPaths({
-    oldPath,
-    newPath,
-    policyName: policyName || `${path.basename(oldPath)} → ${path.basename(newPath)}`,
-  });
-
-  res.status(201).json({ data: { summary, oldHtml, newHtml } });
-});
-
 // ---- NEW: ingest a single LOCAL file -> extract fields -> upsert Firestore ----
 export const ingestPolicyFromFile = asyncHandler(async (req, res) => {
   const { file, insuranceCompanyRef, name, version, effectiveDate } = req.body || {};
@@ -386,3 +268,36 @@ export const ingestPolicyFromBucket = asyncHandler(async (req, res) => {
     source: { objectName }
   });
 });
+
+export const getPolicySummary = asyncHandler(async (req, res) => {
+  const summary = await aiService.getPolicySummary(req.params.id);
+
+  res.json({ summary });
+});
+
+export const uploadPolicy = asyncHandler(async (req, res) => {
+  const file = req.file; // set by multer.single("file")
+  if (!file) {
+    return res.status(400).json({ message: 'No file uploaded. Expecting field "file".' });
+  }
+
+  const ownerId = (req.user && req.user.id) || req.body.userId || 'anonymous';
+
+  try {
+    const result = await policiesService.uploadPolicyToBucket(file, ownerId);
+    req.body.beFileName = result.path;
+    const created = await policiesService.createPolicies(req.body);
+    const summary = await aiService.getPolicySummary(created.id);
+    await policiesService.updatePolicySummary(created.id, summary);
+    
+
+    res.status(201).json({
+      fileUploadResult: result,
+      databaseResult: created,
+      summary
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+

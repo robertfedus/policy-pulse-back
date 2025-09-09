@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as PoliciesController from '../../controllers/policies.controller.js';
+import multer from 'multer';
 
 
 const router = Router();
@@ -12,14 +13,15 @@ router.post('/', PoliciesController.createPolicies);
 router.get("/:id/pdf", PoliciesController.streamPolicyPdf);       
 router.get("/:id/pdf-url", PoliciesController.policyPdfSignedUrl); 
 
-// Compare
-router.post('/:id/compare', PoliciesController.comparePolicyById);
-router.post('/compare', PoliciesController.comparePolicyByQuery);
-router.post('/compare-files', PoliciesController.compareLocalFiles);
+// Summary
+router.get('/summary/:id', PoliciesController.getPolicySummary);
 
 // NEW: ingest a single local file into Firestore
 router.post('/ingest-file', PoliciesController.ingestPolicyFromFile);
 
 router.post('/ingest-policy', PoliciesController.ingestPolicyFromBucket);
+
+const upload = multer({ storage: multer.memoryStorage() });
+router.post('/upload', upload.single('file'), PoliciesController.uploadPolicy);
 
 export default router;
