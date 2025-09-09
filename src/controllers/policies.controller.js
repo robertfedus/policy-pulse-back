@@ -290,3 +290,26 @@ export const getPoliciesByInsuranceCompany = asyncHandler(async (req, res) => {
   const policies = await policiesService.getPoliciesByInsuranceCompany(req.params.insuranceCompanyId);
   res.json({ data: policies });
 });
+
+export const streamPolicyPdf = asyncHandler(async (req, res) => {
+  const result = await policiesService.getPolicyPdfStream(req.params.id);
+  if (!result.ok) return res.status(404).json(result);
+
+  res.setHeader("Content-Type", result.contentType || "application/pdf");
+  res.setHeader("Content-Disposition", `inline; filename="${result.filename}"`);
+  res.setHeader("Cache-Control", "private, max-age=0, must-revalidate");
+
+  result.stream.on("error", (err) => {
+    console.error("GCS stream error", err);
+    if (!res.headersSent) res.status(500).json({ error: "Storage stream failed" });
+    else res.destroy(err);
+  });
+
+  result.stream.pipe(res);
+});
+
+export const policyPdfSignedUrl = asyncHandler(async (req, res) => {
+  const result = await policiesService.getPolicySignedUrl(req.params.id);
+  if (!result.ok) return res.status(404).json(result);
+  res.json(result); // { url, objectName, ttlMinutes }
+});
