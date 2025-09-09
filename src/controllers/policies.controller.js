@@ -159,7 +159,7 @@ export const getPoliciesById = asyncHandler(async (req, res) => {
   res.json({ data: policy });
 });
 
-export const uploadPolicy = asyncHandler(async (req, res) => {
+export const uploadPolicy1 = asyncHandler(async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
