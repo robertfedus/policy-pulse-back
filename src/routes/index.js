@@ -6,6 +6,7 @@ import policiesRoute from './v1/policies.route.js';
 import compareRoute from './v1/compare.route.js';
 
 import aiRoute from './v1/ai.route.js';
+import affectedMedsRoute from './v1/affected_meds.route.js';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/v1/policies', policiesRoute);
 router.use('/v1/compare', compareRoute);
 
 router.use('/v1/ai', aiRoute);
+router.use('/v1/affected_meds', affectedMedsRoute);
 
 export default router;

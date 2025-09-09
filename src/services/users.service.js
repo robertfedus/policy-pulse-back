@@ -3,6 +3,7 @@ import { firestore } from '../config/firebase.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { UserCreateSchema } from '../models/user.model.js';
+import { flattenUserMeds } from '../utils/meds.js';
 
 const COLLECTION = 'users';
 const jwtSecret = process.env.JWT_SECRET;
@@ -46,6 +47,99 @@ export async function listUsers(auth /* { userId, role } */) {
   if (snapshot.empty) return [];
   return snapshot.docs.map(d => sanitize({ id: d.id, ...d.data() }));
 }
+
+export async function addIllnessToPatient(patientId, illnessName) {
+  // 1) Validate input
+  const name =
+    typeof illnessName === "string" ? illnessName.trim() : "";
+  if (!name) {
+    const err = new Error("Illness name is required");
+    err.status = 400;
+    throw err;
+  }
+
+  const patientRef = firestore.collection(COLLECTION).doc(patientId);
+
+  return firestore.runTransaction(async (tx) => {
+    const snap = await tx.get(patientRef);
+    if (!snap.exists) {
+      const err = new Error("Patient not found");
+      err.status = 404;
+      throw err;
+    }
+
+    const data = snap.data() || {};
+    if (data.role !== "patient") {
+      const err = new Error("User is not a patient");
+      err.status = 400;
+      throw err;
+    }
+
+    // 2) Handle legacy field name ("ilnesses") and normalize to "illnesses"
+    const legacy = Array.isArray(data.ilnesses) ? data.ilnesses : [];
+    const current = Array.isArray(data.illnesses) ? data.illnesses : [];
+
+    // migrate legacy into current if needed
+    const merged = [...current];
+    if (legacy.length && !current.length) {
+      for (const it of legacy) merged.push(it);
+    }
+    console.log("Merged illnesses:", merged);
+
+    // 3) Build the new illness object
+    const newIllness = { name };
+    newIllness.medications = []; // start with empty medications array
+
+    // 4) Idempotent: skip if already present (case-insensitive match)
+    const exists = merged.some(
+      (i) => i && typeof i.name === "string" && i.name.trim().toLowerCase() === name.toLowerCase()
+    );
+    if (!exists) merged.push(newIllness);
+
+    // 5) Write back only the normalized "illnesses" field
+    tx.update(patientRef, {
+      illnesses: merged,
+      updatedAt: new Date(),
+    
+    });
+
+    return { id: snap.id, ...data, illnesses: merged };
+  });
+}
+
+export async function addMedication(patientId,illness ,medication) {
+  const patientRef = firestore.collection(COLLECTION).doc(patientId);
+  const patientSnap = await patientRef.get();
+  if (!patientSnap.exists) {
+    const err = new Error('Patient not found');
+    err.status = 404;
+    throw err;
+  }
+  const patientData = patientSnap.data();
+  if (patientData.role !== 'patient') {
+    const err = new Error('User is not a patient');
+    err.status = 400;
+    throw err;
+  }
+  const illnesses = Array.isArray(patientData.illnesses) ? patientData.illnesses : [];
+  
+  const illnessIndex = illnesses.findIndex(i => i.name === illness)||illnesses.findIndex(i => i === illness.name);
+  if (illnessIndex === -1) {
+    const err = new Error('Illness not found for this patient');
+    err.status = 404;
+    throw err;
+  }
+  const illnessObj = illnesses[illnessIndex];
+  const medications = Array.isArray(illnessObj.medications) ? illnessObj.medications : [];
+  medications.push(medication);
+  illnessObj.medications = medications;
+  illnesses[illnessIndex] = illnessObj;
+  await patientRef.update({ illnesses, updatedAt: new Date() });
+  const updatedSnap = await patientRef.get();
+  return sanitize({ id: updatedSnap.id, ...updatedSnap.data() });
+  
+}
+
 
 export async function createUser(payload /* req.body */) {
   // Validate
@@ -183,4 +277,34 @@ export async function getAllPatients() {
 
   if (snapshot.empty) return [];
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function getUsersInsuredOnAny(policyPaths) {
+  const seen = new Set();
+  const docs = [];
+
+  const snaps = await Promise.all(
+    policyPaths.map((path) =>
+      firestore.collection(COLLECTION).where("insuredAt", "array-contains", path).get()
+    )
+  );
+
+  snaps.forEach((snap) => {
+    snap.forEach((doc) => {
+      if (!seen.has(doc.id)) {
+        seen.add(doc.id);
+        docs.push(doc);
+      }
+    });
+  });
+
+  return docs;
+}
+
+export function extractUserMeds(doc) {
+  const data = doc.data();
+  if (Array.isArray(data.medicationsFlat) && data.medicationsFlat.length) {
+    return data.medicationsFlat.map((m) => String(m).toLowerCase());
+  }
+  return flattenUserMeds(data);
 }

@@ -7,9 +7,20 @@ export const listUsers = asyncHandler(async (req, res) => {
   res.json({ data: users });
 });
 
+
 export const createUser = asyncHandler(async (req, res) => {
   const created = await usersService.createUser(req.body);
   res.status(201).json({ data: created });
+});
+
+export const addIllnessToPatient = asyncHandler(async (req, res) => {
+  const updated = await usersService.addIllnessToPatient(req.params.id, req.body.illness);
+  res.json({ data: updated });
+});
+
+export const addMedication = asyncHandler(async (req, res) => {
+  const updated = await usersService.addMedication(req.params.id, req.body.illness, req.body.medication);
+  res.json({ data: updated });
 });
 
 export const getUserById = asyncHandler(async (req, res) => {

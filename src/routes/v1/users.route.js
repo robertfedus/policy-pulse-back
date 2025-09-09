@@ -11,6 +11,9 @@ router.get('/patients', usersController.getAllPatients);
 router.get('/:id', usersController.getUserById);
 router.post('/', usersController.createUser);
 router.get('/hospital/:id/patients', usersController.findPatientsByHospital);
+router.patch('/addIllness/:id', usersController.addIllnessToPatient);
+router.patch('/addMedication/:id', usersController.addMedication);
+router.patch('/updateUser/:id', usersController.updateUser);
 
 
 // router.get('/', usersController.listUsers);

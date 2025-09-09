@@ -68,6 +68,10 @@ export const updatePolicy = asyncHandler(async (req, res) => {
 export const deletePolicy = asyncHandler(async (_req, res) => {
   res.status(204).send();
 });
+ export const findPolicyByInsuranceCompany = asyncHandler(async (req, res) => {   
+   const policies = await policiesService.getPolicyByInsuranceCompanyRef(req.params.insuranceCompanyRef);
+   res.json({ data: policies });
+ });
 
 // ---- helpers for comparisons (by name + company + version) ----
 async function loadPolicyDocById(id) {
@@ -151,8 +155,19 @@ export const ingestPolicyFromFile = asyncHandler(async (req, res) => {
 });
 
 export const getPoliciesById = asyncHandler(async (req, res) => {
-  const policy = await policiesService.getPolicies(req.params.id);
+  const policy = await policiesService.getPolicyById(req.params.id);
   res.json({ data: policy });
+});
+
+export const uploadPolicy1 = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+
+  const destName = `${req.file.originalname}`;
+  const objectName = await policiesService.uploadPolicyFileBuffer(req.file.buffer, destName);
+
+  res.status(201).json({ objectName });
 });
 
 export const updatePolicies = asyncHandler(async (req, res) => {
@@ -166,7 +181,7 @@ export const deletePolicies = asyncHandler(async (req, res) => {
 } );
 
 export const getPoliciesByInsuranceCompany = asyncHandler(async (req, res) => {   
-  const policies = await policiesService.getPoliciesByInsuranceCompany(req.params.insuranceCompanyId);
+  const policies = await policiesService.getPolicyByInsuranceCompanyRef(req.params.insuranceCompanyId);
   res.json({ data: policies });
 });
 
