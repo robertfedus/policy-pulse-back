@@ -7,6 +7,7 @@ export const listUsers = asyncHandler(async (req, res) => {
   res.json({ data: users });
 });
 
+
 export const createUser = asyncHandler(async (req, res) => {
   const created = await usersService.createUser(req.body);
   res.status(201).json({ data: created });
