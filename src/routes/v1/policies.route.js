@@ -16,9 +16,9 @@ router.get("/:id/pdf-url", PoliciesController.policyPdfSignedUrl);
 router.get("/insuranceRef/:insuranceCompanyRef", PoliciesController.findPolicyByInsuranceCompany);
 
 
-router.post('/:id/compare', PoliciesController.comparePolicyById);
-router.post('/compare', PoliciesController.comparePolicyByQuery);
-router.post('/compare-files', PoliciesController.compareLocalFiles);
+// router.post('/:id/compare', PoliciesController.comparePolicyById);
+// router.post('/compare', PoliciesController.comparePolicyByQuery);
+// router.post('/compare-files', PoliciesController.compareLocalFiles);
 
 router.get('/summary/:id', PoliciesController.getPolicySummary);
 
@@ -30,7 +30,6 @@ router.post('/ingest-file', PoliciesController.ingestPolicyFromFile);
 
 router.post('/ingest-policy', PoliciesController.ingestPolicyFromBucket);
 
-const upload = multer({ storage: multer.memoryStorage() });
 router.post('/upload', upload.single('file'), PoliciesController.uploadPolicy);
 
 export default router;
