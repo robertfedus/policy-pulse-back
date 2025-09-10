@@ -293,6 +293,7 @@ export function extractUserMeds(doc) {
 }
 
 export async function replacePolicyInUsers(oldPolicyId, newPolicyId) {
+  console.log("IM HERE");
   const oldId = typeof oldPolicyId === 'string' ? oldPolicyId.trim() : '';
   const newId = typeof newPolicyId === 'string' ? newPolicyId.trim() : '';
   if (!oldId || !newId) {
@@ -304,6 +305,7 @@ export async function replacePolicyInUsers(oldPolicyId, newPolicyId) {
     return { matched: 0, updated: 0, skipped: 0 };
   }
  
+
   const oldPath = `policies/${oldId}`;
   const newPath = `policies/${newId}`;
  
@@ -312,6 +314,8 @@ export async function replacePolicyInUsers(oldPolicyId, newPolicyId) {
     .collection(COLLECTION)
     .where('insuredAt', 'array-contains', oldPath)
     .get();
+  console.log("Snap");
+  console.log(snap);
  
   if (snap.empty) return { matched: 0, updated: 0, skipped: 0 };
  

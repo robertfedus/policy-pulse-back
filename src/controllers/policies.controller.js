@@ -331,8 +331,12 @@ export const uploadPolicy = asyncHandler(async (req, res) => {
         persist: false
       }));
  
-      await usersService.replacePolicyInUsers(oldPolicy.id, created.id);
+      const result = await usersService.replacePolicyInUsers(oldPolicy.id, created.id);
+      console.log("THE RESULT");
+      console.log(result);
+      console.log(affectedPatients);
       if (affectedPatients.affectedPatients.length > 0) {
+        console.log("Sending emails");
         mailerService.sendPlanChangeEmails(affectedPatients.affectedPatients);
       }
     }
