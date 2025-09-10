@@ -308,3 +308,89 @@ export function extractUserMeds(doc) {
   }
   return flattenUserMeds(data);
 }
+
+
+export async function replacePolicyInUsers(oldPolicyId, newPolicyId) {
+  const oldId = typeof oldPolicyId === 'string' ? oldPolicyId.trim() : '';
+  const newId = typeof newPolicyId === 'string' ? newPolicyId.trim() : '';
+  if (!oldId || !newId) {
+    const err = new Error('Both oldPolicyId and newPolicyId are required');
+    err.status = 400;
+    throw err;
+  }
+  if (oldId === newId) {
+    return { matched: 0, updated: 0, skipped: 0 };
+  }
+
+  const oldPath = `policies/${oldId}`;
+  const newPath = `policies/${newId}`;
+
+  // 1) Query all users that currently reference the old policy path
+  const snap = await firestore
+    .collection(COLLECTION)
+    .where('insuredAt', 'array-contains', oldPath)
+    .get();
+
+  if (snap.empty) return { matched: 0, updated: 0, skipped: 0 };
+
+  const docs = snap.docs;
+
+  // Helper to dedupe while preserving order
+  const dedupe = (arr) => {
+    const seen = new Set();
+    const out = [];
+    for (const v of arr) {
+      if (!seen.has(v)) {
+        seen.add(v);
+        out.push(v);
+      }
+    }
+    return out;
+  };
+
+  let updated = 0;
+  let skipped = 0;
+
+  // 2) Commit in batches of 500
+  for (let i = 0; i < docs.length; i += 500) {
+    const chunk = docs.slice(i, i + 500);
+    const batch = firestore.batch();
+
+    for (const d of chunk) {
+      const data = d.data() || {};
+      const insuredAt = Array.isArray(data.insuredAt) ? data.insuredAt.map(String) : [];
+
+      // Replace every occurrence of oldPath with newPath
+      let changed = false;
+      const replaced = insuredAt.map((p) => {
+        if (p === oldPath) {
+          changed = true;
+          return newPath;
+        }
+        return p;
+      });
+
+      // If nothing changed (should be rare due to the query), skip
+      if (!changed) {
+        skipped += 1;
+        continue;
+      }
+
+      // Deduplicate in case newPath was already present
+      const cleaned = dedupe(replaced);
+
+      batch.update(firestore.collection(COLLECTION).doc(d.id), {
+        insuredAt: cleaned,
+        updatedAt: new Date(),
+      });
+      updated += 1;
+    }
+
+    // Only commit if there are updates in this batch
+    if (updated > 0) {
+      await batch.commit();
+    }
+  }
+
+  return { matched: docs.length, updated, skipped };
+}

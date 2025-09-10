@@ -49,6 +49,11 @@ export const getAllPatients = asyncHandler(async (req, res) => {
   res.json({ data: patients });
 });
 
+export const replacePolicyInUsers = asyncHandler(async (req, res) => {
+  const result = await usersService.replacePolicyInUsers(req.body.oldPolicyId, req.body.newPolicyId);
+  res.json({ data: result });
+});
+
 /**
  * Extract auth info from the "Authorization: Bearer <jwt>" header.
  * - Returns { userId, role } if the token is valid
