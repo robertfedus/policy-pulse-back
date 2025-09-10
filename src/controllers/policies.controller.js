@@ -5,6 +5,9 @@ import asyncHandler from '../utils/asyncHandler.js';
 import admin,{ firestore } from '../config/firebase.js';
 import * as policiesService from '../services/policies.service.js';
 import * as aiService from '../services/ai.service.js';
+import * as usersService from '../services/users.service.js';
+import * as affectedMedsService from '../services/affected_meds.service.js';
+import * as mailerService from '../services/mailer.service.js';
 
 const BUCKET=process.env.FIREBASE_STORAGE_BUCKET 
 // Your PDFs live at policy-pulse-back/src/uploads on host,
@@ -301,13 +304,39 @@ export const uploadPolicy = asyncHandler(async (req, res) => {
   const ownerId = (req.user && req.user.id) || req.body.userId || 'anonymous';
 
   try {
+    let oldPolicyCoverageMap, oldPolicy;
+
+    if (req.body.version && Number(req.body.version) > 1) {
+      const oldVersion = Number(req.body.version) - 1;
+      oldPolicy = await policiesService.getPolicyByNameAndVersion(req.body.name, String(oldVersion));
+      oldPolicyCoverageMap = oldPolicy.coverage_map;
+    }
+
     const result = await policiesService.uploadPolicyToBucket(file, ownerId);
     req.body.beFileName = result.path;
     const created = await policiesService.createPolicies(req.body);
     const summary = await aiService.getPolicySummary(created.id);
     const coverageMap = await aiService.getPolicyCoverageMap(created.id);
     await policiesService.updatePolicySummary(created.id, summary);
-    await policiesService.updatePolicyCoverageMap(created.id, JSON.parse(coverageMap));    
+    await policiesService.updatePolicyCoverageMap(created.id, JSON.parse(coverageMap));
+
+    if (oldPolicyCoverageMap) {
+      console.log(oldPolicy.id);
+      console.log(created.id);
+      
+      const affectedPatients = (await affectedMedsService.runAffectedMedsByPolicyIds({
+        oldPolicyId: oldPolicy.id,
+        newPolicyId: created.id,
+        insuredPolicyId: oldPolicy.id,
+        persist: false
+      }));
+ 
+      await usersService.replacePolicyInUsers(oldPolicy.id, created.id);
+      if (affectedPatients.affectedPatients.length > 0) {
+        mailerService.sendPlanChangeEmails(affectedPatients.affectedPatients);
+      }
+    }
+    
 
     res.status(201).json({
       fileUploadResult: result,
@@ -316,11 +345,14 @@ export const uploadPolicy = asyncHandler(async (req, res) => {
       coverage_map: JSON.parse(coverageMap)
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({
+      ...err,
+      message: err.message,
+      stack: err.stack
+    });
+    
   }
 });
-
-
 
 export const getAllVersionPairs = asyncHandler(async (_req, res) => {
   const pairsByPolicy = await policiesService.getAllPolicyVersionPairs();

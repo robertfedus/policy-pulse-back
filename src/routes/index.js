@@ -8,6 +8,7 @@ import recommendationsRoute from './v1/recommendations.route.js';
 
 import aiRoute from './v1/ai.route.js';
 import affectedMedsRoute from './v1/affected_meds.route.js';
+import notificationsRouter from './v1/notifications.route.js'; 
 
 const router = Router();
 
@@ -17,6 +18,7 @@ router.use('/v1/insurance_companies', insuranceCompaniesRoute);
 router.use('/v1/policies', policiesRoute);
 router.use('/v1/compare', compareRoute);
 router.use('/v1/recommendations', recommendationsRoute);
+router.use('/v1/notifications', notificationsRouter);
 
 router.use('/v1/ai', aiRoute);
 router.use('/v1/affected_meds', affectedMedsRoute);
