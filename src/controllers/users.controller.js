@@ -35,7 +35,15 @@ export const findPatientsByHospital = asyncHandler(async (req, res) => {
 
 
 export const updateUser = asyncHandler(async (req, res) => {
-  const updated = await usersService.updateUser(req.params.id, req.body);
+  const auth = {
+    userId: req.user?.id
+      || req.get('x-user-id')
+      || req.get('user-id')
+      || req.body.userId,
+    role:  req.user?.role || 'patient',
+  };
+
+  const updated = await usersService.updateUser(req.params.id, req.body, auth);
   res.json({ data: updated });
 });
 
@@ -48,6 +56,7 @@ export const getAllPatients = asyncHandler(async (req, res) => {
   const patients = await usersService.getAllPatients();
   res.json({ data: patients });
 });
+
 
 /**
  * Extract auth info from the "Authorization: Bearer <jwt>" header.
