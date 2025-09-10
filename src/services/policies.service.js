@@ -339,3 +339,86 @@ export async function listImpactReports(policyId, { limit = 20 } = {}) {
   const snap = await col.orderBy("createdAt", "desc").limit(limit).get();
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
+
+export async function getPolicyVersionPairs({ name, insuranceCompanyRef }) {
+  const versions = await getPolicyVersionsByName({ name, insuranceCompanyRef });
+
+  const pairs = [];
+  for (let i = 0; i < versions.length - 1; i++) {
+    const cur = versions[i];
+    const next = versions[i + 1];
+    pairs.push({
+      v1: cur.version,
+      id1: cur.id,
+      v2: next.version,
+      id2: next.id,
+    });
+  }
+
+  return pairs;
+}
+
+export async function getPolicyVersionsByName({ name, insuranceCompanyRef }) {
+  if (!name) throw new Error("Policy name is required");
+
+  let query = firestore.collection(COLLECTION).where("name", "==", name);
+
+  if (insuranceCompanyRef) {
+    query = query.where("insuranceCompanyRef", "==", insuranceCompanyRef);
+  }
+
+  const snap = await query.orderBy("version", "asc").get();
+  if (snap.empty) return [];
+
+  return snap.docs.map((d) => ({
+    id: d.id,
+    version: d.data().version ?? null,
+  }));
+}
+
+export async function getAllPolicyVersionPairs() {
+  const snap = await firestore.collection(COLLECTION).get();
+  if (snap.empty) return {};
+
+  // group docs by key = name+company
+  const groups = {};
+  snap.forEach((doc) => {
+    const data = doc.data();
+    const name = data.name || "(unnamed)";
+    const company = data.insuranceCompanyRef || "(no-company)";
+    const key = `${name}::${company}`;
+
+    // normalize version: coerce to number if possible
+    let versionNum = null;
+    if (data.version !== undefined && data.version !== null) {
+      const n = Number(data.version);
+      if (!isNaN(n)) versionNum = n;
+    }
+
+    if (!groups[key]) groups[key] = [];
+    groups[key].push({ id: doc.id, version: versionNum });
+  });
+
+  // sort each group and build adjacent pairs
+  const result = {};
+  for (const [key, versions] of Object.entries(groups)) {
+    const sorted = versions
+      .filter((v) => v.version !== null)
+      .sort((a, b) => a.version - b.version);
+
+    const pairs = [];
+    for (let i = 0; i < sorted.length - 1; i++) {
+      pairs.push({
+        v1: sorted[i].version,
+        id1: sorted[i].id,
+        v2: sorted[i + 1].version,
+        id2: sorted[i + 1].id,
+      });
+    }
+    if (pairs.length) {
+      result[key] = pairs;
+    }
+  }
+
+  return result;
+}

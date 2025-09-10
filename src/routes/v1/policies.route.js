@@ -14,6 +14,7 @@ router.post('/', PoliciesController.createPolicies);
 router.get("/:id/pdf", PoliciesController.streamPolicyPdf);       
 router.get("/:id/pdf-url", PoliciesController.policyPdfSignedUrl); 
 router.get("/insuranceRef/:insuranceCompanyRef", PoliciesController.findPolicyByInsuranceCompany);
+router.get("/changes/versions", PoliciesController.getAllVersionPairs);
 
 
 // router.post('/:id/compare', PoliciesController.comparePolicyById);
@@ -23,7 +24,6 @@ router.get("/insuranceRef/:insuranceCompanyRef", PoliciesController.findPolicyBy
 router.get('/summary/:id', PoliciesController.getPolicySummary);
 
 
-router.post("/upload", upload.single("file"),PoliciesController.uploadPolicy)
 
 // NEW: ingest a single local file into Firestore
 router.post('/ingest-file', PoliciesController.ingestPolicyFromFile);
