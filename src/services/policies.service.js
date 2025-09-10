@@ -285,6 +285,29 @@ export async function updatePolicySummary(id, summary) {
   return { id: doc.id, ...doc.data() };
 }
 
+export async function updatePolicyCoverageMap(id, coverageMap) {
+  if (!id) {
+    throw new Error('Policy id is required');
+  }
+
+  // reference the document by id
+  const ref = firestore.collection(COLLECTION).doc(id);
+
+  // update only the "coverage_map" field
+  await ref.update({
+    coverage_map: coverageMap,
+    updatedAt: new Date(), // optional, good to keep track
+  });
+
+  // fetch the updated doc if you want to return the new state
+  const doc = await ref.get();
+  if (!doc.exists) {
+    throw new Error(`Policy with id ${id} not found`);
+  }
+
+  return { id: doc.id, ...doc.data() };
+}
+
 export async function getTwoPoliciesById(oldPolicyId, newPolicyId) {
   const [oldP, newP] = await Promise.all([getPolicy(oldPolicyId), getPolicy(newPolicyId)]);
   return { oldPolicy: oldP, newPolicy: newP };
