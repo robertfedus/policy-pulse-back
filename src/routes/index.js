@@ -7,6 +7,7 @@ import compareRoute from './v1/compare.route.js';
 
 import aiRoute from './v1/ai.route.js';
 import affectedMedsRoute from './v1/affected_meds.route.js';
+import aiDebugRoute from './v1/chatbot.debug.route.js';
 
 const router = Router();
 
@@ -18,5 +19,7 @@ router.use('/v1/compare', compareRoute);
 
 router.use('/v1/ai', aiRoute);
 router.use('/v1/affected_meds', affectedMedsRoute);
+
+router.use('/v1/ai/debug', aiDebugRoute);
 
 export default router;
