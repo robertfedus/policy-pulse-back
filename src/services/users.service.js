@@ -228,36 +228,19 @@ export async function getUserById(id) {
   return sanitize({ id: doc.id, ...doc.data() });
 }
 
-export async function updateUser(id, payload, auth /* { userId, role } */) {
-  // Only owner or 'hospital' can update
-  if (!auth || (auth.userId !== id && auth.role !== 'hospital')) {
-    const err = new Error('Forbidden');
-    err.status = 403;
-    throw err;
-  }
+export async function updateUser(id, payload) {
+  const patch = { ...(payload || {}), updatedAt: new Date() };
 
-  const data = UserUpdateSchema.parse(payload || {});
-  const patch = { ...data, updatedAt: new Date() };
-
-  // If updating email, enforce uniqueness
-  if (data.email) {
-    const existing = await findUserByEmail(data.email);
-    if (existing && existing.id !== id) {
-      const err = new Error('Email already in use');
-      err.status = 409;
-      throw err;
-    }
-  }
-
-  // If updating password, hash it
-  if (data.password) {
-    patch.password = await bcrypt.hash(data.password, 12);
+  // If updating password, hash it (keep this if you still want security)
+  if (patch.password) {
+    patch.password = await bcrypt.hash(patch.password, 12);
   }
 
   await firestore.collection(COLLECTION).doc(id).set(patch, { merge: true });
   const doc = await firestore.collection(COLLECTION).doc(id).get();
   return sanitize({ id: doc.id, ...doc.data() });
 }
+
 
 export async function deleteUser(id, auth /* { userId, role } */) {
   // Only owner or 'hospital' can delete
