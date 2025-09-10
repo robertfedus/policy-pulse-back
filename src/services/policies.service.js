@@ -399,3 +399,94 @@ export async function getAllPolicyVersionPairs() {
 
   return result;
 }
+
+
+export async function getLatestPolicies() {
+  const snap = await firestore.collection(COLLECTION).get();
+  if (snap.empty) return [];
+
+  const best = new Map(); // key = name::company -> { doc }
+  snap.forEach((doc) => {
+    const data = doc.data() || {};
+    const name = data.name || "(unnamed)";
+    const company = data.insuranceCompanyRef || "(no-company)";
+    const key = `${name}::${company}`;
+    const versionNum = Number(data.version ?? 0) || 0;
+
+    const cur = best.get(key);
+    if (!cur || versionNum > cur.version) {
+      best.set(key, { id: doc.id, ...data, version: versionNum });
+    }
+  });
+
+  return Array.from(best.values());
+}
+
+/** Tiny normalizer so "Ibuprofen 200mg" matches map keys consistently. */
+export function normMed(s = "") {
+  return String(s).toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Score a policy against a list of user medications.
+ * Returns { covered, partial, notCovered, score, details[], coveredRatio }.
+ *
+ * Rules:
+ * - type "covered"          => +2
+ * - type "percent", p > 0   => + (p/100)   (so 50% gives +0.5)
+ * - not present / p = 0     => +0
+ */
+export function scorePolicyForMeds(policy, medsRaw = []) {
+  const meds = medsRaw.map(normMed).filter(Boolean);
+
+  // build a lookup: firstWord -> coverage rule
+  const coverage = policy.coverage_map || {};
+  const normalizedCoverage = {};
+  for (const [key, rule] of Object.entries(coverage)) {
+    const norm = normMed(key);
+    normalizedCoverage[norm] = rule;
+  }
+
+  let covered = 0;
+  let partial = 0;
+  let notCovered = 0;
+  let score = 0;
+
+  const details = [];
+
+  for (const med of meds) {
+    const rule = normalizedCoverage[med];
+
+    if (!rule) {
+      notCovered++;
+      details.push({ med, type: "not_covered", points: 0 });
+      continue;
+    }
+
+    if (rule.type === "covered") {
+      covered++;
+      score += 2;
+      details.push({ med, type: "covered", points: 2 });
+    } else if (rule.type === "percent") {
+      const p = Number(rule.percent || 0);
+      if (p > 0) {
+        partial++;
+        const pts = Math.max(0, Math.min(1, p / 100)); // scale to 0..1
+        score += pts;
+        details.push({ med, type: "percent", percent: p, points: pts });
+      } else {
+        notCovered++;
+        details.push({ med, type: "not_covered", points: 0 });
+      }
+    } else {
+      notCovered++;
+      details.push({ med, type: "not_covered", points: 0 });
+    }
+  }
+
+  const denom = meds.length || 1;
+  const coveredRatio = (covered + partial) / denom;
+
+  return { covered, partial, notCovered, score, details, coveredRatio };
+}
+
