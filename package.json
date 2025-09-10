@@ -32,6 +32,7 @@
     "supertest": "^7.1.4"
   },
   "dependencies": {
+    "@thednp/dommatrix": "^2.0.12",
     "axios": "^1.11.0",
     "bcryptjs": "^3.0.2",
     "compression": "^1.8.1",
@@ -46,6 +47,7 @@
     "mammoth": "^1.10.0",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
+    "nodemailer": "^7.0.6",
     "openai": "^5.19.1",
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^5.4.149",

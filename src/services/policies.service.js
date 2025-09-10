@@ -37,7 +37,7 @@ export async function getPolicy(policyId) {
   const ref = firestore.collection(COLLECTION).doc(policyId);
   const snap = await ref.get();
 
-  console.log("[getPolicy]", { policyId, exists: snap.exists }); // <-- TEMP LOG
+  //console.log("[getPolicy]", { policyId, exists: snap.exists }); // <-- TEMP LOG
 
   if (!snap.exists) {
     const err = new Error(`Policy not found: policies/${policyId}`);
@@ -47,7 +47,7 @@ export async function getPolicy(policyId) {
 
   const data = snap.data(); // <-- MUST be .data() (NOT snap.data)
 
-  console.log("[getPolicy] keys:", Object.keys(data || {})); // <-- TEMP LOG
+  //console.log("[getPolicy] keys:", Object.keys(data || {})); // <-- TEMP LOG
 
   return { ref, id: policyId, data };
 }
@@ -66,6 +66,23 @@ export async function getPolicy(policyId) {
 export async function getPolicyById(id) {
   const doc = await firestore.collection(COLLECTION).doc(id).get();
   return doc.exists ? ({ id: doc.id, ...doc.data() }) : null;
+}
+
+export async function getPolicyByNameAndVersion(name, version) {
+  const snapshot = await firestore
+  .collection(COLLECTION)
+  .where('name', '==', name)
+  .where('version', '==', version)
+  .get();
+
+  if (snapshot.empty) {
+    throw new Error(`No policy found with name=${name} and version=${version}`);
+  }
+
+// Take the first element of the query
+  const doc = snapshot.docs[0];
+  const data = { id: doc.id, ...doc.data() };
+  return doc.exists ? data : null;
 }
 
 export async function updatePolicy(id, payload) {
