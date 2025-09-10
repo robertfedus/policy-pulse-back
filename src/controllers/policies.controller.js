@@ -16,6 +16,8 @@ function resolveFilePath(beFileName = '') {
   return path.isAbsolute(beFileName) ? beFileName : path.join(UPLOAD_DIR, beFileName);
 }
 
+
+
 async function tryReadable(filePath) {
   try { await fs.access(filePath); return filePath; } catch { return null; }
 }
@@ -316,3 +318,9 @@ export const uploadPolicy = asyncHandler(async (req, res) => {
   }
 });
 
+
+
+export const getAllVersionPairs = asyncHandler(async (_req, res) => {
+  const pairsByPolicy = await policiesService.getAllPolicyVersionPairs();
+  res.json({ data: pairsByPolicy });
+});
