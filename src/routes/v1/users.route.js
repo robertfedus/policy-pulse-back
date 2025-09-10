@@ -27,6 +27,4 @@ router.get('/:id', usersController.getUserById);
 // router.patch('/:id', requireAuth, usersController.updateUser);
 // router.delete('/:id', requireAuth, usersController.deleteUser);
 
-router.post('/replacePolicyInUsers', usersController.replacePolicyInUsers);
-
 export default router;
