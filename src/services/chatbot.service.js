@@ -22,7 +22,9 @@ If a policy is referenced by a human-readable name, resolve it by name or filena
 If a question is conversational (no policy facts), answer briefly; otherwise call tools.
 Cite policy IDs and field names from tool results. If a tool returns nothing, say so.
 Never include any dollar amounts in coverage summaries unless you have called computeCostWithProvidedPrices in this turn. If prices were not provided by the user, do not infer, estimate, or assume any prices. For any user message that includes medication names with dollar amounts, you MUST compute using computeCostWithProvidedPrices.
-Keep PHI minimal; show patient info only when explicitly requested by an authorized admin.
+For queries that ask to choose or rank a policy based on the user's current medications, you MUST call bestPolicyForMeByCoverage (or bestPolicyByCoverage when medications are explicitly provided).
+Do not answer such queries from memory or with generic text.
+
 `;
 
 // Single source of truth for callable tools
@@ -185,6 +187,37 @@ const TOOL_REGISTRY = {
 };
 
 const TOOLS = Object.values(TOOL_REGISTRY).map((t) => t.schema);
+function isCoverageRankingQuery(text) {
+  const t = String(text || "").toLowerCase();
+  return (
+    /based on (my|our) (current )?meds?/.test(t) ||
+    /which policy (file )?(is|would be) the best fit/.test(t) ||
+    /best policy (for me|by coverage)/.test(t) ||
+    /rank (the )?polic(ies|y) by coverage/.test(t)
+  );
+}
+
+function formatCoverageRanking(result) {
+  if (!result?.ok) {
+    return `Sorry — ${result?.error || "couldn’t rank policies by coverage."}`;
+  }
+  if (!result.ranking || result.ranking.length === 0) {
+    return "No suitable policies found for your medications.";
+  }
+
+  const best = result.ranking[0];
+  const s = best.score;
+  const ratePct = Math.round((s.coverageRate || 0) * 100);
+
+  return (
+    `Best match for your current medications:\n\n` +
+    `**${best.policy.beFileName || best.policy.name || best.policy.id}**\n` +
+    `- ${s.coveredCount}/${s.totalMeds} meds covered (${ratePct}%, avg ${s.avgPercent.toFixed(0)}%)\n` +
+    (best.policy.effectiveDate ? `- Effective: ${best.policy.effectiveDate}\n` : "") +
+    (best.policy.version ? `- Version: ${best.policy.version}\n` : "")
+  );
+}
+
 
 function extractCostQuery(text) {
   const t = String(text || "");
@@ -244,6 +277,8 @@ function safeParse(json) {
 
 export async function chatWithTools({ messages, context }) {
   const lastUser = [...messages].reverse().find(m => m.role === "user");
+
+  // --- Preflight: cost computation if user supplied prices ---
   if (lastUser) {
     const parsed = extractCostQuery(lastUser.content);
     if (parsed) {
@@ -255,6 +290,17 @@ export async function chatWithTools({ messages, context }) {
       return { ok: true, answer: formatCostAnswer(result), toolResult: result };
     }
   }
+
+  // --- Preflight: coverage ranking based on user's meds ---
+  if (lastUser && isCoverageRankingQuery(lastUser.content)) {
+    const result = await dispatchTool(
+      "bestPolicyForMeByCoverage",
+      { topK: 5, preferLatest: true }, // you can add candidateFiles if needed
+      context
+    );
+    return { ok: true, answer: formatCoverageRanking(result), toolResult: result };
+  }
+
   // 1) Ask the model how to respond and which tools to call
   const initial = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -298,4 +344,3 @@ export async function chatWithTools({ messages, context }) {
   const finalMsg = followup.choices[0].message;
   return { ok: true, answer: finalMsg.content ?? "" };
 }
-
