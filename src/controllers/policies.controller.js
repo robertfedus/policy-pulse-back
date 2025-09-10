@@ -308,6 +308,8 @@ export const uploadPolicy = asyncHandler(async (req, res) => {
     const coverageMap = await aiService.getPolicyCoverageMap(created.id);
     await policiesService.updatePolicySummary(created.id, summary);
     await policiesService.updatePolicyCoverageMap(created.id, coverageMap);
+
+    console.log(coverageMap);
     
 
     res.status(201).json({

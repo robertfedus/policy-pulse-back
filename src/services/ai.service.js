@@ -89,7 +89,7 @@ export const getPolicyCoverageMap = async (id) => {
     // 3) Ask the model, attaching the PDF via input_file + file_id
     const prompt = [
       "You are an expert medical insurance policy analyst.",
-      "Obtain all medicines from the policy and create a JSON string. Only reply with the JSON and nothing else. The JSON must look like this (example): [{'nurofen 200mg': {'type': 'percent', 'percent': 50}}, {'paracetamol 500mg': {'type': 'covered'}}]. Array of objects with keys the names of the medicines. The values of these keys are objects with type (percentage or covered) and percentage, which is a number. Do not format it, make it in one line. Do not add \n, just reply with plain JSON. Very important to be plain JSON. Make sure the JSON is an array of medicine objects and that the format is correct."
+      "Obtain all medicines from the policy and create a JSON string. Only reply with the JSON and nothing else. The JSON must look like this (example): [{'nurofen 200mg': 100}]. Array of objects with keys the names of the medicines. The values are the percentages the medicines are covered. If a medicine is covered, the value will be 100. Otherwise, specify the percentage. Do not format it, make it in one line. Do not add \n, just reply with plain JSON. Very important to be plain JSON. Make sure the JSON is an array of medicine objects and that the format is correct."
     ].join("\n");
 
     const response = await client.responses.create({
